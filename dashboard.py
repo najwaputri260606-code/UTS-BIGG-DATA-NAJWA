@@ -502,6 +502,6 @@ else:
 
 # FOOTER
 st.markdown(
-    "<div class='footer-center'>created by <b>Najwa | NIM_KAMU</b><br>"
+    "<div class='footer-center'>created by <b>Najwa Putri Aqilah | 2408108010053</b><br>"
     "Proyek UAS Praktikum Pemrograman Big Data | Universitas Syiah Kuala</div>",
     unsafe_allow_html=True)
