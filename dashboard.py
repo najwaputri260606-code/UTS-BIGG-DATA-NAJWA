@@ -7,13 +7,14 @@ from PIL import Image
 import pandas as pd
 import cv2
 import datetime
+import os
 
 # ==========================
 # CONFIG
 # ==========================
 st.set_page_config(
-    page_title="Dashboard Klasifikasi dan Deteksi Objek",
-    page_icon="🔎",
+    page_title="Dashboard Klasifikasi dan Deteksi Buah",
+    page_icon="🍎",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -24,13 +25,28 @@ st.set_page_config(
 st.markdown("""
 <style>
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #b3c7ff, #8e9fff);
-    color: #f2f4ff;
+    background: linear-gradient(135deg, #ffd1ec 0%, #e3d0ff 50%, #ffffff 100%);
+    color: #4a2a6b;
     font-family: 'Arial', sans-serif;
     padding: 2rem 3rem;
     margin: 0;
 }
 [data-testid="stHeader"], [data-testid="stToolbar"] { display: none; }
+
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #f9d6ee, #e6dcff);
+}
+[data-testid="stAppViewContainer"] p, [data-testid="stAppViewContainer"] label,
+[data-testid="stAppViewContainer"] h1, [data-testid="stAppViewContainer"] h2,
+[data-testid="stAppViewContainer"] h3, [data-testid="stSidebar"] label,
+[data-testid="stSidebar"] p { color: #4a2a6b !important; }
+.stButton > button, .stFormSubmitButton > button {
+    background: linear-gradient(135deg, #ff9bd9, #b388ff);
+    color: #ffffff; border: none; border-radius: 12px; font-weight: 600;
+}
+.stButton > button:hover, .stFormSubmitButton > button:hover {
+    background: linear-gradient(135deg, #ff7fcf, #9c6bff); color: #ffffff;
+}
 
 .block-container {
     padding-top: 0rem !important;
@@ -62,10 +78,10 @@ st.markdown("""
 }
 
 .main-title {
-    background: linear-gradient(145deg, #6b7bd6, #4f63c8);
-    border: 2px solid rgba(255,255,255,0.08);
+    background: linear-gradient(145deg, #ff9bd9, #b388ff);
+    border: 2px solid rgba(255,255,255,0.6);
     border-radius: 18px;
-    color: #f8fbff;
+    color: #ffffff;
     text-align: center;
     padding: 20px;
     font-size: 28px;
@@ -78,38 +94,38 @@ st.markdown("""
 .section-title {
     font-size: 20px;
     font-weight: 700;
-    background-color: rgba(255,255,255,0.06);
+    background-color: rgba(255,255,255,0.7);
     padding: 8px 15px;
     border-radius: 12px;
-    color: #f2f6ff;
+    color: #7b3fa8;
     margin-bottom: 15px;
     text-align: center;
-    border: 1px solid rgba(255,255,255,0.04);
+    border: 1px solid #f3b8e3;
 }
 
 .detect-result {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.04);
+    background: rgba(255,255,255,0.75);
+    border: 1px solid #f3b8e3;
     border-radius: 10px;
     margin-top: 12px;
     padding: 12px;
-    color: #f2f6ff;
+    color: #4a2a6b;
     font-weight: 600;
     text-align: center;
 }
 
 .explain-box {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.03);
+    background: rgba(255,255,255,0.75);
+    border: 1px solid #f3b8e3;
     border-radius: 10px;
     padding: 15px;
-    color: #f2f6ff;
+    color: #4a2a6b;
     margin-top: 10px;
     font-weight: 500;
     text-align: justify;
 }
 
-.footer-center { text-align: center; color: #eef2ff; font-weight: 500; }
+.footer-center { text-align: center; color: #7b3fa8; font-weight: 500; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -142,8 +158,8 @@ if 'last_conf' not in st.session_state:
 # ==========================
 @st.cache_resource
 def load_models():
-    yolo_model = YOLO("model/best.pt")
-    classifier = tf.keras.models.load_model("model/classifier_model.h5")
+    yolo_model = YOLO("model/najwa_Laporan 4.pt")
+    classifier = tf.keras.models.load_model("model/best_model.h5")
     return yolo_model, classifier
 
 # attempt load, but catch errors to keep app responsive
@@ -156,17 +172,18 @@ except Exception as e:
 # ==========================
 # CLASS NAMES
 # ==========================
-class_names = ["Ballet Flat", "Boat", "Brogue", "Clog", "Sneaker"]
+# urutan alfabet, sama dengan urutan kelas pada model YOLO
+class_names = ["Apel", "Cherry", "Grapes", "Jeruk", "Kiwi", "Mangga", "Pisang", "Sawo", "Strawberry"]
 
 # ==========================
 # PAGES
 # ==========================
 
 def halaman_awal():
-    st.markdown("<div class=\"main-title\">👟 <b>SELAMAT DATANG DI DASHBOARD SEFTYA PRATISTA</b> 👟</div>", unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Aplikasi Deteksi & Klasifikasi Sepatu (YOLO + CNN)</div>', unsafe_allow_html=True)
+    st.markdown("<div class=\"main-title\">🍎 <b>SELAMAT DATANG DI DASHBOARD NAJWA</b> 🍓</div>", unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Aplikasi Deteksi & Klasifikasi Buah (YOLO + CNN)</div>', unsafe_allow_html=True)
     st.markdown('<div class="explain-box">\
-        Halo! Ini adalah aplikasi demo yang memperlihatkan bagaimana model deteksi (YOLO) dan klasifikasi (CNN) bekerja pada citra sepatu.\
+        Halo! Ini adalah aplikasi demo yang memperlihatkan bagaimana model deteksi (YOLO) dan klasifikasi (CNN) bekerja pada citra buah.\
         Klik tombol di bawah untuk melanjutkan ke proses registrasi singkat sebelum menggunakan dashboard.</div>', unsafe_allow_html=True)
 
     st.write("")
@@ -197,7 +214,8 @@ def halaman_registrasi():
 from plotly import express as px
 
 def halaman_main():
-    st.sidebar.image("model/LOGO UUSK.jpg", use_container_width=True)
+    if os.path.exists("model/LOGO UUSK.jpg"):
+        st.sidebar.image("model/LOGO UUSK.jpg", use_container_width=True)
     menu = st.sidebar.radio("🧭 Pilih Mode Analisis:", ["Deteksi Objek (YOLO)", "Klasifikasi Gambar"]) 
     st.sidebar.info("📤 Unggah gambar sesuai mode yang dipilih untuk mulai analisis AI.")
 
@@ -299,7 +317,7 @@ def halaman_main():
                 salah = max(0.0, 100.0 - benar)
                 pie_data = pd.DataFrame({"Hasil":["Benar","Salah"], "Persentase":[benar,salah]})
                 fig = px.pie(pie_data, values='Persentase', names='Hasil',
-                             color='Hasil', color_discrete_map={'Benar':'#4f63c8','Salah':'#dce4ff'},
+                             color='Hasil', color_discrete_map={'Benar':'#b388ff','Salah':'#ffc2e6'},
                              hole=0.35)
                 fig.update_traces(textinfo='label+percent+value', marker=dict(line=dict(color='rgba(0,0,0,0)')))
                 fig.update_layout(width=300, height=300, margin=dict(l=0,r=0,t=0,b=0),
@@ -377,4 +395,4 @@ else:
 
 # FOOTER
 st.markdown("---")
-st.markdown("<center>created by <b>Seftya Pratista | 2208108010054</b><br>Proyek UAS Praktikum Pemrograman Big Data | Universitas Syiah Kuala</center>", unsafe_allow_html=True)
+st.markdown("<center style='color:#7b3fa8;'>created by <b>Najwa | NIM_KAMU</b><br>Proyek UAS Praktikum Pemrograman Big Data | Universitas Syiah Kuala</center>", unsafe_allow_html=True)
