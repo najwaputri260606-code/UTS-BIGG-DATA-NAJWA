@@ -153,6 +153,7 @@ if 'last_pred' not in st.session_state:
 if 'last_conf' not in st.session_state:
     st.session_state['last_conf'] = None
 
+
 # ==========================
 # LOAD MODELS
 # ==========================
@@ -162,12 +163,12 @@ def load_models():
     classifier = tf.keras.models.load_model("model/best_model.h5")
     return yolo_model, classifier
 
-# attempt load, but catch errors to keep app responsive
 try:
     yolo_model, classifier = load_models()
 except Exception as e:
     st.error(f"Gagal memuat model: {e}")
     yolo_model, classifier = None, None
+
 
 # ==========================
 # CLASS NAMES
