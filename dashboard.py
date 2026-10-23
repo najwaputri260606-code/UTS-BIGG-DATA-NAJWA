@@ -15,7 +15,7 @@ from plotly import express as px
 # ==========================
 st.set_page_config(
     page_title="Dashboard Klasifikasi dan Deteksi Buah",
-    page_icon="🦄",
+    page_icon="🍎",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -96,9 +96,13 @@ html, body, [class*="css"], [data-testid="stAppViewContainer"] { font-family: 'P
 .step-card p { margin:0; font-size: 14px; }
 
 /* ---------- PROGRESS TITIK ---------- */
-.dots { display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom: 14px; }
-.dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(160,110,210,.3); }
-.dot.on { width: 34px; border-radius: 999px; background: linear-gradient(90deg,#ff6fc8,#a97bff); }
+.dots { display:flex; gap:22px; align-items:center; justify-content:center; margin-bottom: 18px; }
+.dot { font-size: 24px; opacity: .35; filter: grayscale(.7); transition: all .3s ease; }
+.dot.on { opacity: 1; filter: none; transform: scale(1.5); animation: floaty 3s ease-in-out infinite; }
+
+/* ---------- BUAH LATAR BELAKANG ---------- */
+.fruit-bg { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.fruit-bg span { position: absolute; opacity: .22; animation: floaty 6s ease-in-out infinite; }
 
 /* ---------- TOMBOL ---------- */
 .stButton > button, .stFormSubmitButton > button {
@@ -154,6 +158,17 @@ hr { border-color: rgba(160,110,210,.25) !important; }
 </style>
 """, unsafe_allow_html=True)
 
+
+# ---------- BUAH MELAYANG DI LATAR ----------
+_bg = [("🍎", 4, 8, 54, 0), ("🍒", 14, 82, 40, 1.2), ("🍇", 30, 3, 48, 2.1), ("🍊", 44, 90, 58, .6),
+       ("🥝", 58, 6, 44, 1.8), ("🥭", 70, 86, 56, 2.6), ("🍌", 84, 12, 52, .9), ("🍓", 88, 78, 46, 1.5),
+       ("🌰", 22, 94, 36, 3.0), ("🍎", 50, 48, 30, 2.4), ("🍇", 94, 45, 38, .3)]
+st.markdown(
+    '<div class="fruit-bg">' + "".join(
+        f'<span style="top:{t}%; left:{l}%; font-size:{fs}px; animation-delay:{d}s;">{e}</span>'
+        for e, t, l, fs, d in _bg) + '</div>',
+    unsafe_allow_html=True)
+
 # ==========================
 # GLOBALS & SESSION INIT
 # ==========================
@@ -184,13 +199,14 @@ except Exception as e:
 # ==========================
 class_names = ["Apel", "Cherry", "Grapes", "Jeruk", "Kiwi", "Mangga", "Pisang", "Sawo", "Strawberry"]
 fruit_emoji = {"Apel": "🍎", "Cherry": "🍒", "Grapes": "🍇", "Jeruk": "🍊", "Kiwi": "🥝",
-               "Mangga": "🥭", "Pisang": "🍌", "Sawo": "🟤", "Strawberry": "🍓"}
+               "Mangga": "🥭", "Pisang": "🍌", "Sawo": "🌰", "Strawberry": "🍓"}
 
 # ==========================
 # HELPERS
 # ==========================
 def dots(active):
-    html = "".join(f'<div class="dot {"on" if i == active else ""}"></div>' for i in range(4))
+    icons = ["🍎", "🍊", "🍇", "🍓"]
+    html = "".join(f'<div class="dot {"on" if i == active else ""}">{e}</div>' for i, e in enumerate(icons))
     st.markdown(f'<div class="dots">{html}</div>', unsafe_allow_html=True)
 
 
@@ -212,11 +228,11 @@ def halaman_awal():
     with left:
         st.markdown(
             '<div style="padding-top:30px; animation: rise .7s ease both;">'
-            '<span class="badge">🦄 Proyek Deteksi &amp; Klasifikasi Buah</span>'
+            '<span class="badge">🍇 Proyek Deteksi &amp; Klasifikasi Buah</span>'
             '<div class="big-title">Kenali Buah<br>dengan <span class="grad-text">Kekuatan AI</span></div>'
             '<div class="sub">Unggah foto buah, biarkan YOLO menemukan posisinya dan CNN menebak jenisnya. '
             'Cepat, lucu, dan gampang dipakai ✨</div></div>', unsafe_allow_html=True)
-        if st.button("✨ Mulai Sekarang", key="start"):
+        if st.button("🍎 Mulai Sekarang", key="start"):
             go('register')
     with right:
         tiles = "".join(
@@ -243,18 +259,18 @@ def halaman_registrasi():
     with left:
         st.markdown(
             '<div class="glass" style="text-align:center; padding:50px 24px;">'
-            '<div style="font-size:110px; animation: floaty 4s ease-in-out infinite;">🦄</div>'
+            '<div style="font-size:80px; animation: floaty 4s ease-in-out infinite;">🍎🍌🍇</div>'
             '<div class="h2">Halo, Teman Baru!</div>'
             '<div class="muted">Kenalan dulu yuk sebelum masuk ke dashboard.</div></div>',
             unsafe_allow_html=True)
     with right:
-        st.markdown('<div class="h2">📝 Registrasi Singkat</div><div class="muted">Isi data berikut untuk melanjutkan</div>',
+        st.markdown('<div class="h2">🍌 Registrasi Singkat</div><div class="muted">Isi data berikut untuk melanjutkan</div>',
                     unsafe_allow_html=True)
         st.write("")
         with st.form("form_reg", border=False):
             name = st.text_input("👤 Nama Lengkap", value=st.session_state.get('user_name', ''))
             campus = st.text_input("🏫 Nama Kampus", value=st.session_state.get('user_campus', ''))
-            submitted = st.form_submit_button("Masuk ke Dashboard 🚀", use_container_width=True)
+            submitted = st.form_submit_button("Masuk ke Dashboard 🍊", use_container_width=True)
             if submitted:
                 if name.strip() == '' or campus.strip() == '':
                     st.warning("Mohon isi Nama dan Nama Kampus sebelum melanjutkan.")
@@ -271,7 +287,7 @@ def halaman_main():
     top1, top2 = st.columns([4, 1])
     with top1:
         st.markdown(
-            f'<div class="glass tight"><span class="h2">🦄 Dashboard</span> &nbsp; '
+            f'<div class="glass tight"><span class="h2">🍓 Dashboard Buah</span> &nbsp; '
             f'<span class="muted">Halo <b>{st.session_state.get("user_name","")}</b> dari '
             f'<b>{st.session_state.get("user_campus","")}</b> 👋</span></div>', unsafe_allow_html=True)
     with top2:
@@ -280,7 +296,7 @@ def halaman_main():
 
     st.write("")
     st.markdown('<div class="muted" style="margin-bottom:6px;">Pilih mode analisis</div>', unsafe_allow_html=True)
-    menu_pick = st.radio("Mode", ["📦 Deteksi Objek (YOLO)", "🧠 Klasifikasi Gambar"],
+    menu_pick = st.radio("Mode", ["🍊 Deteksi Objek (YOLO)", "🍇 Klasifikasi Gambar"],
                          horizontal=True, label_visibility="collapsed")
     menu = "Deteksi Objek (YOLO)" if "Deteksi" in menu_pick else "Klasifikasi Gambar"
 
@@ -295,7 +311,7 @@ def halaman_main():
     img = Image.open(uploaded_file).convert("RGB")
     col1, col2 = st.columns(2, gap="large")
     with col1:
-        st.markdown('<div class="h2">🖼️ Gambar Kamu</div>', unsafe_allow_html=True)
+        st.markdown('<div class="h2">🍎 Gambar Kamu</div>', unsafe_allow_html=True)
         st.image(img, use_container_width=True)
 
     stats = []
@@ -305,13 +321,13 @@ def halaman_main():
         if yolo_model is None:
             st.error("Model YOLO belum tersedia.")
         else:
-            with st.spinner("🚀 AI sedang mendeteksi objek... harap tunggu sebentar!"):
+            with st.spinner("🍊 AI sedang mendeteksi objek... harap tunggu sebentar!"):
                 results = yolo_model(np.array(img))
                 result_img = results[0].plot()[:, :, ::-1]  # BGR -> RGB
                 boxes = results[0].boxes
 
             with col2:
-                st.markdown('<div class="h2">📦 Hasil Deteksi</div>', unsafe_allow_html=True)
+                st.markdown('<div class="h2">🍊 Hasil Deteksi</div>', unsafe_allow_html=True)
                 if boxes is not None and len(boxes) > 0:
                     st.image(result_img, use_container_width=True)
 
@@ -334,7 +350,7 @@ def halaman_main():
                                             last_conf=avg_conf, used_feature=True)
                     stats = [("Mode", "Deteksi"), ("Objek", len(boxes)), ("Rata-rata Confidence", f"{avg_conf:.1f}%")]
 
-                    chips = "".join(f'<span class="chip">{fruit_emoji.get(l, "🍽️")} {l} × {n}</span>'
+                    chips = "".join(f'<span class="chip">{fruit_emoji.get(l, "🍎")} {l} × {n}</span>'
                                     for l, n in Counter(labels).items())
                     st.markdown(chips, unsafe_allow_html=True)
                 else:
@@ -342,7 +358,7 @@ def halaman_main():
                     data = []
 
             if data:
-                st.markdown('<div class="h2">📋 Rincian Hasil Deteksi</div>', unsafe_allow_html=True)
+                st.markdown('<div class="h2">🍌 Rincian Hasil Deteksi</div>', unsafe_allow_html=True)
                 st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
                 st.caption("💡 Semakin tinggi nilai confidence, semakin yakin model terhadap deteksi tersebut.")
 
@@ -351,7 +367,7 @@ def halaman_main():
         if classifier is None:
             st.error("Model klasifikasi belum tersedia.")
         else:
-            with st.spinner("🧠 Sedang melakukan klasifikasi gambar..."):
+            with st.spinner("🍇 Sedang melakukan klasifikasi gambar..."):
                 target_size = classifier.input_shape[1:3]
                 img_resized = img.resize(target_size)
                 img_array = image.img_to_array(img_resized)
@@ -364,9 +380,9 @@ def halaman_main():
                 pred_name = class_names[class_index]
 
             with col2:
-                st.markdown('<div class="h2">📊 Hasil Klasifikasi</div>', unsafe_allow_html=True)
+                st.markdown('<div class="h2">🍇 Hasil Klasifikasi</div>', unsafe_allow_html=True)
                 st.markdown(
-                    f'<div class="glass result-big"><div class="emo">{fruit_emoji.get(pred_name, "🍽️")}</div>'
+                    f'<div class="glass result-big"><div class="emo">{fruit_emoji.get(pred_name, "🍎")}</div>'
                     f'<div class="name grad-text">{pred_name}</div>'
                     f'<div class="muted">Keyakinan model: <b>{confidence:.2f}%</b></div></div>',
                     unsafe_allow_html=True)
@@ -382,7 +398,7 @@ def halaman_main():
             fig_bar.update_layout(height=340, margin=dict(l=0, r=0, t=10, b=0),
                                   paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                                   font=dict(color='#4a2a6b'))
-            st.markdown('<div class="h2">🔢 Probabilitas per Kelas</div>', unsafe_allow_html=True)
+            st.markdown('<div class="h2">🥝 Probabilitas per Kelas</div>', unsafe_allow_html=True)
             st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
             st.session_state.update(last_mode='classification', last_pred=pred_name,
@@ -392,7 +408,7 @@ def halaman_main():
     # ---------- RINGKASAN + DONUT ----------
     if stats and st.session_state.get('used_feature', False):
         st.write("")
-        st.markdown('<div class="h2">✨ Ringkasan</div>', unsafe_allow_html=True)
+        st.markdown('<div class="h2">🥭 Ringkasan</div>', unsafe_allow_html=True)
         sc = st.columns(len(stats), gap="medium")
         for c, (lbl, val) in zip(sc, stats):
             c.markdown(stat(lbl, val), unsafe_allow_html=True)
@@ -409,14 +425,14 @@ def halaman_main():
                               paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                               font=dict(color='#4a2a6b'))
             st.write("")
-            st.markdown('<div class="h2" style="text-align:center;">🍩 Persen Akurasi</div>', unsafe_allow_html=True)
+            st.markdown('<div class="h2" style="text-align:center;">🍒 Persen Akurasi</div>', unsafe_allow_html=True)
             _, d2, _ = st.columns([1, 2, 1])
             with d2:
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
         _, b, _ = st.columns([2, 2, 2])
         with b:
-            if st.button("💬 Berikan Feedback", use_container_width=True):
+            if st.button("🍓 Berikan Feedback", use_container_width=True):
                 go('feedback')
 
 
@@ -426,12 +442,12 @@ def halaman_feedback():
     with left:
         st.markdown(
             '<div class="glass" style="text-align:center; padding:50px 24px;">'
-            '<div style="font-size:100px; animation: floaty 4s ease-in-out infinite;">💖</div>'
+            '<div style="font-size:90px; animation: floaty 4s ease-in-out infinite;">🍓</div>'
             '<div class="h2">Terima Kasih!</div>'
             '<div class="muted">Masukanmu bikin aplikasi ini makin keren.</div></div>',
             unsafe_allow_html=True)
     with right:
-        st.markdown('<div class="h2">💬 Feedback Pengguna</div><div class="muted">Beri rating dan saranmu</div>',
+        st.markdown('<div class="h2">🍓 Feedback Pengguna</div><div class="muted">Beri rating dan saranmu</div>',
                     unsafe_allow_html=True)
         st.write("")
         with st.form("form_feedback", border=False):
@@ -439,7 +455,7 @@ def halaman_feedback():
                                index=4, horizontal=True)
             rating = len(pilihan)
             comment = st.text_area("Komentar / Saran", height=120)
-            submitted = st.form_submit_button("Kirim Feedback 💌", use_container_width=True)
+            submitted = st.form_submit_button("Kirim Feedback 🍓", use_container_width=True)
 
             if submitted:
                 row = {
