@@ -153,6 +153,21 @@ div[role="radiogroup"] label:has(input:checked) * { color:#fff !important; font-
 .chip { display:inline-block; margin: 4px 6px 4px 0; padding: 6px 14px; border-radius: 999px; font-weight: 600; font-size: 14px;
         background: #fff; color:#7b3fa8; border: 1.5px solid #f1b6e2; }
 
+/* ---------- TEKS BAWAAN STREAMLIT DI LATAR TERANG -> UNGU TUA ---------- */
+[data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] *,
+[data-testid="stSpinner"], [data-testid="stSpinner"] *,
+[data-testid="stWidgetLabel"], [data-testid="stWidgetLabel"] *,
+[data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] span,
+[data-testid="stFileUploaderFile"] *, [data-testid="stFileUploaderFileName"],
+[data-testid="stAlert"] *, [data-testid="stNotification"] *,
+[data-testid="stMetricLabel"] *, [data-testid="stMetricValue"] * { color: #4a2a6b !important; }
+::placeholder { color: #a58bc4 !important; opacity: 1; }
+
+/* teks putih DI DALAM bentuk ungu/pink tetap putih */
+.stButton > button *, .stFormSubmitButton > button *,
+div[role="radiogroup"] label:has(input:checked) *,
+[data-testid="stFileUploaderDropzone"] button *, .step-num { color: #ffffff !important; }
+
 .footer-center { text-align:center; color:#7b3fa8; font-size: 13px; margin-top: 30px; }
 hr { border-color: rgba(160,110,210,.25) !important; }
 </style>
