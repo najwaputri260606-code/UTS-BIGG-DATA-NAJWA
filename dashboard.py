@@ -397,9 +397,12 @@ def halaman_main():
             fig_bar.update_traces(marker_color=colors)
             fig_bar.update_layout(height=340, margin=dict(l=0, r=0, t=10, b=0),
                                   paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                  font=dict(color='#4a2a6b'))
+                                  font=dict(color='#4a2a6b', size=14),
+                                  legend=dict(font=dict(color='#4a2a6b', size=15)))
+            fig_bar.update_xaxes(tickfont=dict(color='#4a2a6b'), title_font=dict(color='#4a2a6b'), gridcolor='rgba(123,63,168,0.15)')
+            fig_bar.update_yaxes(tickfont=dict(color='#4a2a6b', size=14), title_font=dict(color='#4a2a6b'))
             st.markdown('<div class="h2">🥝 Probabilitas per Kelas</div>', unsafe_allow_html=True)
-            st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+            st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False}, theme=None)
 
             st.session_state.update(last_mode='classification', last_pred=pred_name,
                                     last_conf=confidence, used_feature=True)
@@ -420,15 +423,17 @@ def halaman_main():
             pie_data = pd.DataFrame({"Hasil": ["Benar", "Salah"], "Persentase": [benar, salah]})
             fig = px.pie(pie_data, values='Persentase', names='Hasil', color='Hasil',
                          color_discrete_map={'Benar': '#a97bff', 'Salah': '#ffc2e6'}, hole=0.55)
-            fig.update_traces(textinfo='label+percent', marker=dict(line=dict(color='#ffffff', width=3)))
+            fig.update_traces(textinfo='label+percent', textfont=dict(color='#4a2a6b', size=15),
+                              marker=dict(line=dict(color='#ffffff', width=3)))
             fig.update_layout(height=320, margin=dict(l=0, r=0, t=0, b=0),
                               paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                              font=dict(color='#4a2a6b'))
+                              font=dict(color='#4a2a6b', size=14),
+                                  legend=dict(font=dict(color='#4a2a6b', size=15)))
             st.write("")
             st.markdown('<div class="h2" style="text-align:center;">🍒 Persen Akurasi</div>', unsafe_allow_html=True)
             _, d2, _ = st.columns([1, 2, 1])
             with d2:
-                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, theme=None)
 
         _, b, _ = st.columns([2, 2, 2])
         with b:
