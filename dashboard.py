@@ -409,13 +409,16 @@ def halaman_main():
             }).sort_values("Probabilitas (%)", ascending=True)
             colors = ['#ff6fc8' if k == pred_name else '#cdb2ff' for k in prob_df["Kelas"]]
             fig_bar = px.bar(prob_df, x="Probabilitas (%)", y="Kelas", orientation="h")
-            fig_bar.update_traces(marker_color=colors)
-            fig_bar.update_layout(height=340, margin=dict(l=0, r=0, t=10, b=0),
+            fig_bar.update_traces(marker_color=colors, text=[f"{v:.1f}%" for v in prob_df["Probabilitas (%)"]],
+                                  textposition="outside", cliponaxis=False,
+                                  textfont=dict(color='#4a2a6b', size=13))
+            fig_bar.update_layout(height=380, margin=dict(l=10, r=60, t=10, b=10),
                                   paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                  font=dict(color='#4a2a6b', size=14),
-                                  legend=dict(font=dict(color='#4a2a6b', size=15)))
-            fig_bar.update_xaxes(tickfont=dict(color='#4a2a6b'), title_font=dict(color='#4a2a6b'), gridcolor='rgba(123,63,168,0.15)')
-            fig_bar.update_yaxes(tickfont=dict(color='#4a2a6b', size=14), title_font=dict(color='#4a2a6b'))
+                                  font=dict(color='#4a2a6b', size=14), bargap=0.25)
+            fig_bar.update_xaxes(range=[0, 115], tickfont=dict(color='#4a2a6b'), title_font=dict(color='#4a2a6b'),
+                                 gridcolor='rgba(123,63,168,0.15)', automargin=True)
+            fig_bar.update_yaxes(title_text="", showticklabels=True, ticklabelposition="outside left",
+                                 tickfont=dict(color='#4a2a6b', size=15), automargin=True)
             st.markdown('<div class="h2">🥝 Probabilitas per Kelas</div>', unsafe_allow_html=True)
             st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False}, theme=None)
 
