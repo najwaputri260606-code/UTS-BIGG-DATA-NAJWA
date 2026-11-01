@@ -437,15 +437,10 @@ def halaman_main():
     ci2.markdown(info_cnn, unsafe_allow_html=True)
 
     st.write("")
-    st.markdown('<div class="muted" style="margin-bottom:6px;">Sumber foto</div>', unsafe_allow_html=True)
-    sumber_label = {"upload": "📂 Unggah Foto", "camera": "📸 Ambil Foto"}
-    kode_list = list(sumber_label.keys())
-    pilih = st.radio("Sumber foto", list(sumber_label.values()),
-                     index=kode_list.index(st.session_state.get('photo_source', 'upload')),
-                     horizontal=True, label_visibility="collapsed")
-    sumber = kode_list[list(sumber_label.values()).index(pilih)]
-    st.session_state['photo_source'] = sumber
-
+    sumber = st.session_state.get('photo_source', 'upload')
+    sumber_nama = "📂 Unggah Foto" if sumber == "upload" else "📸 Ambil Foto"
+    st.markdown(f'<div class="muted">Sumber foto: <b>{sumber_nama}</b> (ganti lewat tombol "Sumber Foto" di kanan atas)</div>',
+                unsafe_allow_html=True)
     st.write("")
     uploaded_file = None
     if sumber == "upload":
