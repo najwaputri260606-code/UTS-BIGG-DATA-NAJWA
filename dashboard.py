@@ -264,28 +264,15 @@ def badge(pct):
 
 
 def interpret_classification(pred, conf, probs):
-    """Penjelasan hasil klasifikasi dengan bahasa sehari-hari. probs = [(nama, persen), ...] urut terbesar."""
+    """Penjelasan hasil klasifikasi. probs = [(nama, persen), ...] urut terbesar."""
     emo = fruit_emoji.get(pred, "🍎")
-    _, cls = level_info(conf)
-    arti = {
-        "lvl-1": f"AI <b>sangat yakin</b>. Warna, bentuk, dan tekstur buah di foto sangat cocok dengan ciri {pred}.",
-        "lvl-2": "AI <b>cukup yakin</b>. Hasil ini kemungkinan besar benar.",
-        "lvl-3": "AI <b>kurang yakin</b>. Hasil ini bisa saja keliru, sebaiknya dicek lagi dengan foto lain.",
-        "lvl-4": "AI <b>ragu-ragu</b>. Jangan jadikan hasil ini patokan, coba unggah foto yang lebih jelas.",
-    }[cls]
-    second, second_pct = probs[1]
-    if second_pct >= 10:
-        mirip = (f"Perhatikan: AI juga melihat kemiripan dengan <b>{fruit_emoji.get(second, '🍎')} {second}</b> "
-                 f"({second_pct:.1f}%), jadi kedua buah ini tampak mirip di mata AI.")
-    else:
-        mirip = "Kemungkinan buah lain sangat kecil, jadi AI tidak terlalu bingung."
     tips = ""
     if conf < 70:
         tips = ("<li>💡 <b>Tips:</b> coba foto dengan cahaya terang, latar polos, "
                 "satu jenis buah saja, dan ambil dari jarak dekat.</li>")
     return ('<div class="interp"><div class="ititle">📖 Arti Hasil Klasifikasi</div><ul>'
             f'<li>AI menebak buah di foto adalah <b>{emo} {pred}</b> dengan keyakinan <b>{conf:.1f}%</b>{badge(conf)}</li>'
-            f'<li>{arti}</li><li>{mirip}</li>{tips}'
+            f'{tips}'
             '<li>ℹ️ Mode ini selalu memilih salah satu dari 9 buah yang dikenal AI, walaupun foto bukan buah. '
             'Gunakan foto satu buah yang jelas.</li></ul></div>')
 
@@ -317,9 +304,20 @@ def no_detection_note():
 
 
 def donut_note(benar, salah):
+    if benar >= 90:
+        simpul = "AI sangat yakin dengan hasil ini dan hasilnya dapat dipercaya."
+    elif benar >= 70:
+        simpul = "keyakinan jauh lebih besar daripada keraguan dan hasil ini cukup dapat dipercaya."
+    elif benar >= 50:
+        simpul = ("keyakinan sedikit lebih besar daripada keraguan, namun hasil ini masih bisa keliru "
+                  "dan sebaiknya dicek kembali dengan foto lain.")
+    else:
+        simpul = ("keraguan lebih besar daripada keyakinan dan hasil ini belum dapat dijadikan patokan. "
+                  "Coba unggah foto yang lebih jelas (cahaya terang, latar polos, dan satu jenis buah).")
     return ('<div class="interp"><div class="ititle">📖 Penjelasan Donut Chart</div><ul>'
             f'<li>Berdasarkan visualisasi di atas dapat diketahui bahwa keyakinan pada hasil sebesar <b>{benar:.1f}%</b> '
-            f'dan keraguannya sebesar <b>{salah:.1f}%</b>.</li></ul></div>')
+            f'dan keraguannya sebesar <b>{salah:.1f}%</b>.</li>'
+            f'<li>Sehingga dapat disimpulkan bahwa {simpul}</li></ul></div>')
 
 
 def mode_info(active):
@@ -528,9 +526,10 @@ def halaman_main():
                                  tickfont=dict(color='#4a2a6b', size=15), automargin=True)
             st.markdown('<div class="h2">🥝 Probabilitas per Kelas</div>', unsafe_allow_html=True)
             st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False}, theme=None)
-            st.markdown('<div class="interp"><div class="ititle">📖 Cara Membaca Grafik</div><ul>'
-                        '<li>Batang <b>pink</b> adalah tebakan utama AI, batang <b>ungu muda</b> adalah kemungkinan buah lain.</li>'
-                        '<li>Makin panjang batangnya, makin besar kemungkinan buah itu menurut AI.</li></ul></div>',
+            st.markdown('<div class="interp"><div class="ititle">📖 Penjelasan Grafik</div><ul>'
+                        f'<li>Berdasarkan grafik di atas, dapat diketahui batang berwarna <b>pink</b> merupakan tebakan utama AI, '
+                        f'yaitu <b>{fruit_emoji.get(pred_name, "🍎")} {pred_name}</b> dengan nilai probabilitas sebesar <b>{confidence:.1f}%</b>, '
+                        'sedangkan batang yang berwarna <b>ungu muda</b> adalah tebakan kemungkinan buah lain.</li></ul></div>',
                         unsafe_allow_html=True)
 
             st.session_state.update(last_mode='classification', last_pred=pred_name,
