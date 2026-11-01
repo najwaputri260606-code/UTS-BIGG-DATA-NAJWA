@@ -7,6 +7,7 @@ from PIL import Image
 import pandas as pd
 import datetime
 import os
+import random
 from collections import Counter
 from plotly import express as px
 
@@ -153,6 +154,13 @@ div[role="radiogroup"] label:has(input:checked) * { color:#fff !important; font-
 .chip { display:inline-block; margin: 4px 6px 4px 0; padding: 6px 14px; border-radius: 999px; font-weight: 600; font-size: 14px;
         background: #fff; color:#7b3fa8; border: 1.5px solid #f1b6e2; }
 
+/* ---------- TEBAK SILUET ---------- */
+.sil-box { text-align:center; padding: 30px 20px; }
+.sil-emoji { font-size: 150px; line-height: 1.1; filter: brightness(0); animation: floaty 4s ease-in-out infinite; display:inline-block; }
+.sil-emoji.reveal { filter: none; }
+.sil-score { display:inline-block; padding: 4px 16px; border-radius: 999px; background: rgba(255,255,255,.8);
+             border: 1px solid #f1b6e2; color:#7b3fa8; font-weight:600; font-size:13px; }
+
 /* ---------- KOTAK PENJELASAN HASIL ---------- */
 .interp { background: rgba(255,255,255,.78); border: 1.5px solid #f1b6e2; border-left: 7px solid #ff6fc8;
           border-radius: 20px; padding: 16px 22px; margin: 14px 0; color:#4a2a6b; animation: rise .7s ease both; }
@@ -202,7 +210,8 @@ st.markdown(
 # GLOBALS & SESSION INIT
 # ==========================
 for key, default in {
-    'page': 'home', 'user_name': '', 'user_campus': '', 'photo_source': 'upload',
+    'page': 'home', 'user_name': '', 'user_campus': '', 'photo_source': 'upload', 'tebak_answer': None, 'tebak_options': [], 'tebak_guess': None,
+    'tebak_benar': 0, 'tebak_total': 0,
     'used_feature': False, 'last_mode': None, 'last_pred': None, 'last_conf': None
 }.items():
     if key not in st.session_state:
@@ -234,7 +243,7 @@ fruit_emoji = {"Apel": "🍎", "Cherry": "🍒", "Grapes": "🍇", "Jeruk": "�
 # HELPERS
 # ==========================
 def dots(active):
-    icons = ["🍎", "🍌", "🥝", "🍇", "🍓"]
+    icons = ["🍎", "🍌", "🍊", "🥝", "🍇", "🍓"]
     html = "".join(f'<div class="dot {"on" if i == active else ""}">{e}</div>' for i, e in enumerate(icons))
     st.markdown(f'<div class="dots">{html}</div>', unsafe_allow_html=True)
 
@@ -382,13 +391,93 @@ def halaman_registrasi():
                 else:
                     st.session_state['user_name'] = name.strip()
                     st.session_state['user_campus'] = campus.strip()
-                    go('input')
+                    go('tebak')
         if st.button("⬅️ Kembali ke Beranda", use_container_width=True):
             go('home')
 
 
-def halaman_input():
+SILUET = ["Apel", "Cherry", "Grapes", "Jeruk", "Kiwi", "Mangga", "Pisang", "Strawberry"]
+SILUET_INFO = {
+    "Apel": "Apel berbentuk bulat dengan lekukan kecil di bagian atas tempat tangkai menempel.",
+    "Cherry": "Cherry berbentuk bulat kecil dengan tangkai panjang dan biasanya tumbuh berpasangan.",
+    "Grapes": "Anggur (grapes) tumbuh bergerombol dalam satu tandan, bentuknya bulatan-bulatan kecil.",
+    "Jeruk": "Jeruk berbentuk bulat dengan permukaan kulit yang tampak lebih rata dan tanpa lekukan dalam.",
+    "Kiwi": "Kiwi berbentuk lonjong, kulitnya cokelat berbulu halus dan dagingnya hijau berbiji kecil.",
+    "Mangga": "Mangga berbentuk lonjong agak pipih dengan ujung yang sedikit meruncing.",
+    "Pisang": "Pisang berbentuk panjang melengkung dan tumbuh dalam satu sisir.",
+    "Strawberry": "Strawberry berbentuk seperti hati dengan daun kecil di bagian atasnya.",
+}
+
+
+def new_round():
+    prev = st.session_state.get('tebak_answer')
+    ans = random.choice([f for f in SILUET if f != prev])
+    opts = random.sample([f for f in SILUET if f != ans], 3) + [ans]
+    random.shuffle(opts)
+    st.session_state.update(tebak_answer=ans, tebak_options=opts, tebak_guess=None)
+
+
+def halaman_tebak():
     dots(2)
+    if not st.session_state.get('tebak_answer'):
+        new_round()
+    ans = st.session_state['tebak_answer']
+    guess = st.session_state.get('tebak_guess')
+
+    st.markdown(
+        '<div style="text-align:center; animation: rise .7s ease both;">'
+        '<div class="big-title" style="font-size:42px;">Tebak <span class="grad-text">Buah dari Siluet</span></div>'
+        '<div class="sub">Lihat bentuknya, menurutmu ini buah apa? Pemanasan dulu sebelum masuk ke deteksi AI 🍎</div></div>',
+        unsafe_allow_html=True)
+
+    _, mid, _ = st.columns([1, 2, 1])
+    with mid:
+        reveal = "reveal" if guess else ""
+        st.markdown(f'<div class="glass sil-box"><div class="sil-emoji {reveal}">{fruit_emoji[ans]}</div></div>',
+                    unsafe_allow_html=True)
+        st.write("")
+
+        if guess is None:
+            st.markdown('<div class="h2" style="text-align:center;">Buah apakah ini?</div>', unsafe_allow_html=True)
+            ca, cb = st.columns(2)
+            for i, opt in enumerate(st.session_state['tebak_options']):
+                with (ca if i % 2 == 0 else cb):
+                    if st.button(opt, key=f"opt_{opt}", use_container_width=True):
+                        st.session_state['tebak_guess'] = opt
+                        st.session_state['tebak_total'] += 1
+                        if opt == ans:
+                            st.session_state['tebak_benar'] += 1
+                        st.rerun()
+        else:
+            if guess == ans:
+                hasil = f'<span class="lvl lvl-1">✅ Benar!</span> Itu memang <b>{ans}</b>.'
+            else:
+                hasil = f'<span class="lvl lvl-4">❌ Belum tepat</span> Tebakanmu <b>{guess}</b>, jawabannya <b>{ans}</b>.'
+            st.markdown(
+                f'<div class="interp"><div class="ititle">{fruit_emoji[ans]} {ans}</div><ul>'
+                f'<li>{hasil}</li><li>{SILUET_INFO[ans]}</li></ul></div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div style="text-align:center;"><span class="sil-score">Tebakan benar: '
+                f'{st.session_state["tebak_benar"]} dari {st.session_state["tebak_total"]}</span></div>',
+                unsafe_allow_html=True)
+            st.write("")
+            if st.button("🔄 Tebak Lagi", use_container_width=True):
+                new_round()
+                st.rerun()
+
+        st.write("")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬅️ Kembali", use_container_width=True):
+                go('register')
+        with c2:
+            label = "Lanjut ke Sumber Foto ➜" if guess is not None else "Lewati ➜"
+            if st.button(label, use_container_width=True):
+                go('input')
+
+
+def halaman_input():
+    dots(3)
     st.markdown(
         '<div style="text-align:center; animation: rise .7s ease both;">'
         '<div class="big-title" style="font-size:42px;">Mau pakai <span class="grad-text">foto dari mana</span>?</div>'
@@ -410,12 +499,12 @@ def halaman_input():
     st.write("")
     _, mid, _ = st.columns([2, 2, 2])
     with mid:
-        if st.button("⬅️ Kembali ke Registrasi", use_container_width=True):
-            go('register')
+        if st.button("⬅️ Kembali ke Tebak Buah", use_container_width=True):
+            go('tebak')
 
 
 def halaman_main():
-    dots(3)
+    dots(4)
     top1, top2 = st.columns([4, 1])
     with top1:
         st.markdown(
@@ -600,7 +689,7 @@ def halaman_main():
 
 
 def halaman_feedback():
-    dots(4)
+    dots(5)
     left, right = st.columns([1, 1], gap="large")
     with left:
         st.markdown(
@@ -656,6 +745,8 @@ if st.session_state['page'] == 'home':
     halaman_awal()
 elif st.session_state['page'] == 'register':
     halaman_registrasi()
+elif st.session_state['page'] == 'tebak':
+    halaman_tebak()
 elif st.session_state['page'] == 'input':
     halaman_input()
 elif st.session_state['page'] == 'main':
