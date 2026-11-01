@@ -160,6 +160,7 @@ div[role="radiogroup"] label:has(input:checked) * { color:#fff !important; font-
 .interp ul { margin: 0; padding-left: 20px; }
 .interp li { margin: 6px 0; font-size: 15px; line-height: 1.5; }
 .interp b { color:#7b3fa8; }
+.interp.active { border-left-color:#a97bff; box-shadow: 0 8px 22px rgba(169,123,255,.3); }
 .lvl { display:inline-block; padding: 2px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; margin-left: 6px; }
 .lvl-1 { background:#d6f5e3; color:#17613f; }
 .lvl-2 { background:#e3dcff; color:#4b2d9a; }
@@ -294,20 +295,17 @@ def interpret_detection(labels, confs):
     grouped = {}
     for l, c in zip(labels, confs):
         grouped.setdefault(l, []).append(c)
-    rows = "".join(
-        f'<li>{fruit_emoji.get(l, "🍎")} <b>{l}</b>: {len(v)} buah, rata-rata keyakinan {np.mean(v):.1f}%{badge(float(np.mean(v)))}</li>'
-        for l, v in grouped.items())
+    parts = [f'<b>{len(v)} {fruit_emoji.get(l, "🍎")} {l}</b> dengan tingkat keyakinan <b>{np.mean(v):.1f}%</b>'
+             for l, v in grouped.items()]
+    kalimat = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " dan " + parts[-1]
     low = sum(1 for c in confs if c < 50)
     low_note = (f'<li>⚠️ Ada <b>{low} objek</b> dengan keyakinan di bawah 50%. Bisa jadi itu salah deteksi, '
                 'cek kotaknya pada gambar.</li>') if low else ""
-    return ('<div class="interp"><div class="ititle">📖 Arti Hasil Deteksi</div><ul>'
-            f'<li>AI menemukan <b>{len(labels)} objek</b> buah pada gambar:</li>'
-            f'<ul>{rows}</ul>{low_note}'
+    return ('<div class="interp"><div class="ititle">📖 Hasil Deteksi</div><ul>'
+            f'<li>Berdasarkan hasil deteksi ditemukan {kalimat}.</li>'
+            f'{low_note}'
             '<li>🟪 <b>Kotak berwarna</b> pada gambar menandai posisi tiap buah. Tulisan di atas kotak adalah jenis buah '
             'dan angka keyakinannya (misal <b>0.87</b> berarti 87%).</li>'
-            '<li>📋 Pada tabel: <b>Jenis Buah</b> = nama buah yang dikenali, <b>Tingkat Keyakinan</b> = seberapa yakin AI, '
-            'sedangkan <b>Kiri, Atas, Kanan, Bawah</b> = posisi kotak pada gambar (dalam piksel, bagian ini boleh diabaikan).</li>'
-            '<li>ℹ️ AI hanya mengenali 9 buah: Apel, Cherry, Grapes, Jeruk, Kiwi, Mangga, Pisang, Sawo, dan Strawberry.</li>'
             '</ul></div>')
 
 
@@ -318,21 +316,21 @@ def no_detection_note():
             '<li>💡 Coba foto dengan cahaya terang dan buah terlihat jelas.</li></ul></div>')
 
 
-def donut_note():
-    return ('<div class="interp"><div class="ititle">📖 Cara Membaca Donut Chart</div><ul>'
-            '<li>Bagian <b>ungu</b> menunjukkan seberapa yakin AI pada hasil ini, bagian <b>pink</b> adalah sisa keraguannya.</li>'
-            '<li>⚠️ Ini <b>bukan</b> nilai akurasi final model dan bukan jaminan hasil pasti benar. '
-            'Angka ini hanya tingkat keyakinan AI untuk gambar yang baru kamu unggah.</li></ul></div>')
+def donut_note(benar, salah):
+    return ('<div class="interp"><div class="ititle">📖 Penjelasan Donut Chart</div><ul>'
+            f'<li>Berdasarkan visualisasi di atas dapat diketahui bahwa keyakinan pada hasil sebesar <b>{benar:.1f}%</b> '
+            f'dan keraguannya sebesar <b>{salah:.1f}%</b>.</li></ul></div>')
 
 
-def glossary():
-    return ('<div class="interp"><div class="ititle">🍓 Kamus Istilah Singkat</div><ul>'
-            '<li><b>Deteksi (YOLO)</b>: AI mencari dan menandai <i>di mana</i> buah berada, bisa lebih dari satu buah.</li>'
-            '<li><b>Klasifikasi (CNN)</b>: AI menebak <i>jenis</i> buah dari satu foto.</li>'
-            '<li><b>Confidence / Keyakinan</b>: seberapa yakin AI pada tebakannya. '
-            'Makin tinggi makin meyakinkan, tapi tetap bisa keliru.</li>'
-            '<li><b>Level keyakinan</b>: 90% ke atas = sangat yakin, 70–89% = cukup yakin, '
-            '50–69% = kurang yakin, di bawah 50% = ragu-ragu.</li></ul></div>')
+def mode_info(active):
+    yolo = ('<div class="interp {a}"><div class="ititle">🍊 Apa itu Deteksi Objek (YOLO)?</div><ul>'
+            '<li>AI mencari dan menandai <b>di mana</b> buah berada pada gambar menggunakan kotak, sekaligus menyebutkan jenisnya.</li>'
+            '<li>Cocok untuk foto yang berisi <b>lebih dari satu buah</b>.</li></ul></div>')
+    cnn = ('<div class="interp {a}"><div class="ititle">🍇 Apa itu Klasifikasi Gambar (CNN)?</div><ul>'
+           '<li>AI menebak <b>jenis</b> buah dari satu foto, lengkap dengan persentase kemungkinan tiap jenis buah.</li>'
+           '<li>Cocok untuk foto <b>satu buah</b> yang terlihat jelas.</li></ul></div>')
+    return (yolo.format(a="active" if active == "Deteksi Objek (YOLO)" else ""),
+            cnn.format(a="active" if active == "Klasifikasi Gambar" else ""))
 
 
 # ==========================
@@ -345,7 +343,7 @@ def halaman_awal():
         st.markdown(
             '<div style="padding-top:30px; animation: rise .7s ease both;">'
             '<span class="badge">🍇 Proyek Deteksi &amp; Klasifikasi Buah</span>'
-            '<div class="big-title">Kenali Buah<br>dengan <span class="grad-text">Kekuatan AI</span></div>'
+            '<div class="big-title">Kenali 9 Jenis Buah<br>dengan <span class="grad-text">Kekuatan AI</span></div>'
             '<div class="sub">Unggah foto buah, biarkan YOLO menemukan posisinya dan CNN menebak jenisnya. '
             'Cepat, lucu, dan gampang dipakai ✨</div></div>', unsafe_allow_html=True)
         if st.button("🍎 Mulai Sekarang", key="start"):
@@ -415,6 +413,10 @@ def halaman_main():
     menu_pick = st.radio("Mode", ["🍊 Deteksi Objek (YOLO)", "🍇 Klasifikasi Gambar"],
                          horizontal=True, label_visibility="collapsed")
     menu = "Deteksi Objek (YOLO)" if "Deteksi" in menu_pick else "Klasifikasi Gambar"
+    info_yolo, info_cnn = mode_info(menu)
+    ci1, ci2 = st.columns(2, gap="medium")
+    ci1.markdown(info_yolo, unsafe_allow_html=True)
+    ci2.markdown(info_cnn, unsafe_allow_html=True)
 
     st.write("")
     uploaded_file = st.file_uploader("📂 Unggah gambar buah (JPG / PNG)", type=["jpg", "jpeg", "png"])
@@ -561,9 +563,7 @@ def halaman_main():
             _, d2, _ = st.columns([1, 2, 1])
             with d2:
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, theme=None)
-            st.markdown(donut_note(), unsafe_allow_html=True)
-
-        st.markdown(glossary(), unsafe_allow_html=True)
+            st.markdown(donut_note(benar, salah), unsafe_allow_html=True)
 
         _, b, _ = st.columns([2, 2, 2])
         with b:
