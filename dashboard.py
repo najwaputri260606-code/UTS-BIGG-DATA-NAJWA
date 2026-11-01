@@ -7,6 +7,7 @@ from PIL import Image
 import pandas as pd
 import datetime
 import os
+import re
 from collections import Counter
 from plotly import express as px
 
@@ -202,7 +203,7 @@ st.markdown(
 # GLOBALS & SESSION INIT
 # ==========================
 for key, default in {
-    'page': 'home', 'user_name': '', 'user_campus': '',
+    'page': 'home', 'user_name': '', 'user_campus': '', 'photo_source': 'upload',
     'used_feature': False, 'last_mode': None, 'last_pred': None, 'last_conf': None
 }.items():
     if key not in st.session_state:
@@ -234,7 +235,7 @@ fruit_emoji = {"Apel": "🍎", "Cherry": "🍒", "Grapes": "🍇", "Jeruk": "�
 # HELPERS
 # ==========================
 def dots(active):
-    icons = ["🍎", "🍊", "🍇", "🍓"]
+    icons = ["🍎", "🍌", "🥝", "🍇", "🍓"]
     html = "".join(f'<div class="dot {"on" if i == active else ""}">{e}</div>' for i, e in enumerate(icons))
     st.markdown(f'<div class="dots">{html}</div>', unsafe_allow_html=True)
 
@@ -266,15 +267,9 @@ def badge(pct):
 def interpret_classification(pred, conf, probs):
     """Penjelasan hasil klasifikasi. probs = [(nama, persen), ...] urut terbesar."""
     emo = fruit_emoji.get(pred, "🍎")
-    tips = ""
-    if conf < 70:
-        tips = ("<li>💡 <b>Tips:</b> coba foto dengan cahaya terang, latar polos, "
-                "satu jenis buah saja, dan ambil dari jarak dekat.</li>")
-    return ('<div class="interp"><div class="ititle">📖 Arti Hasil Klasifikasi</div><ul>'
-            f'<li>AI menebak buah di foto adalah <b>{emo} {pred}</b> dengan keyakinan <b>{conf:.1f}%</b>{badge(conf)}</li>'
-            f'{tips}'
-            '<li>ℹ️ Mode ini selalu memilih salah satu dari 9 buah yang dikenal AI, walaupun foto bukan buah. '
-            'Gunakan foto satu buah yang jelas.</li></ul></div>')
+    return ('<div class="interp"><div class="ititle">📖 Penjelasan Klasifikasi</div><ul>'
+            f'<li>Berdasarkan hasil klasifikasi, AI menebak buah di foto itu adalah <b>{emo} {pred}</b> '
+            f'dengan tingkat keyakinan <b>{conf:.2f}%</b>{badge(conf)}</li></ul></div>')
 
 
 def interpret_detection(labels, confs):
@@ -304,6 +299,7 @@ def no_detection_note():
 
 
 def donut_note(benar, salah):
+    simpul = ""
     if benar >= 90:
         simpul = "AI sangat yakin dengan hasil ini dan hasilnya dapat dipercaya."
     elif benar >= 70:
@@ -311,13 +307,11 @@ def donut_note(benar, salah):
     elif benar >= 50:
         simpul = ("keyakinan sedikit lebih besar daripada keraguan, namun hasil ini masih bisa keliru "
                   "dan sebaiknya dicek kembali dengan foto lain.")
-    else:
-        simpul = ("keraguan lebih besar daripada keyakinan dan hasil ini belum dapat dijadikan patokan. "
-                  "Coba unggah foto yang lebih jelas (cahaya terang, latar polos, dan satu jenis buah).")
+    kesimpulan = f'<li>Sehingga dapat disimpulkan bahwa {simpul}</li>' if simpul else ""
     return ('<div class="interp"><div class="ititle">📖 Penjelasan Donut Chart</div><ul>'
             f'<li>Berdasarkan visualisasi di atas dapat diketahui bahwa keyakinan pada hasil sebesar <b>{benar:.1f}%</b> '
             f'dan keraguannya sebesar <b>{salah:.1f}%</b>.</li>'
-            f'<li>Sehingga dapat disimpulkan bahwa {simpul}</li></ul></div>')
+            f'{kesimpulan}</ul></div>')
 
 
 def mode_info(active):
@@ -389,13 +383,41 @@ def halaman_registrasi():
                 else:
                     st.session_state['user_name'] = name.strip()
                     st.session_state['user_campus'] = campus.strip()
-                    go('main')
+                    go('input')
         if st.button("⬅️ Kembali ke Beranda", use_container_width=True):
             go('home')
 
 
-def halaman_main():
+def halaman_input():
     dots(2)
+    st.markdown(
+        '<div style="text-align:center; animation: rise .7s ease both;">'
+        '<div class="big-title" style="font-size:42px;">Mau pakai <span class="grad-text">foto dari mana</span>?</div>'
+        '<div class="sub">Pilih cara memasukkan foto buah, lalu lanjut ke dashboard untuk dianalisis AI.</div></div>',
+        unsafe_allow_html=True)
+    opsi = [
+        ("upload", "📂", "Unggah Foto", "Pilih foto buah dari galeri atau penyimpanan perangkatmu."),
+        ("camera", "📸", "Ambil Foto", "Foto buah langsung memakai kamera HP atau laptop."),
+        ("sample", "🖼️", "Foto Contoh", "Coba cepat dengan foto contoh yang sudah disiapkan."),
+    ]
+    cols = st.columns(3, gap="medium")
+    for col, (kode, emo, judul, desc) in zip(cols, opsi):
+        with col:
+            st.markdown(
+                f'<div class="glass step-card" style="text-align:center;"><div style="font-size:56px;">{emo}</div>'
+                f'<h4>{judul}</h4><p>{desc}</p></div>', unsafe_allow_html=True)
+            if st.button(f"{emo} {judul}", key=f"src_{kode}", use_container_width=True):
+                st.session_state['photo_source'] = kode
+                go('main')
+    st.write("")
+    _, mid, _ = st.columns([2, 2, 2])
+    with mid:
+        if st.button("⬅️ Kembali ke Registrasi", use_container_width=True):
+            go('register')
+
+
+def halaman_main():
+    dots(3)
     top1, top2 = st.columns([4, 1])
     with top1:
         st.markdown(
@@ -403,8 +425,8 @@ def halaman_main():
             f'<span class="muted">Halo <b>{st.session_state.get("user_name","")}</b> dari '
             f'<b>{st.session_state.get("user_campus","")}</b> 👋</span></div>', unsafe_allow_html=True)
     with top2:
-        if st.button("⬅️ Registrasi", use_container_width=True):
-            go('register')
+        if st.button("⬅️ Sumber Foto", use_container_width=True):
+            go('input')
 
     st.write("")
     st.markdown('<div class="muted" style="margin-bottom:6px;">Pilih mode analisis</div>', unsafe_allow_html=True)
@@ -417,10 +439,35 @@ def halaman_main():
     ci2.markdown(info_cnn, unsafe_allow_html=True)
 
     st.write("")
-    uploaded_file = st.file_uploader("📂 Unggah gambar buah (JPG / PNG)", type=["jpg", "jpeg", "png"])
+    st.markdown('<div class="muted" style="margin-bottom:6px;">Sumber foto</div>', unsafe_allow_html=True)
+    sumber_label = {"upload": "📂 Unggah Foto", "camera": "📸 Ambil Foto", "sample": "🖼️ Foto Contoh"}
+    kode_list = list(sumber_label.keys())
+    pilih = st.radio("Sumber foto", list(sumber_label.values()),
+                     index=kode_list.index(st.session_state.get('photo_source', 'upload')),
+                     horizontal=True, label_visibility="collapsed")
+    sumber = kode_list[list(sumber_label.values()).index(pilih)]
+    st.session_state['photo_source'] = sumber
+
+    st.write("")
+    uploaded_file = None
+    if sumber == "upload":
+        uploaded_file = st.file_uploader("📂 Unggah gambar buah (JPG / PNG)", type=["jpg", "jpeg", "png"])
+    elif sumber == "camera":
+        uploaded_file = st.camera_input("📸 Arahkan kamera ke buah, lalu ambil foto")
+    else:
+        sample_dir = "sample_images"
+        files = []
+        if os.path.isdir(sample_dir):
+            files = sorted((f for f in os.listdir(sample_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))),
+                           key=lambda n: [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", n)])
+        if files:
+            nama = st.selectbox("🖼️ Pilih foto contoh", files)
+            uploaded_file = os.path.join(sample_dir, nama)
+        else:
+            st.warning("Folder foto contoh (sample_images) tidak ditemukan atau kosong.")
 
     if uploaded_file is None:
-        st.markdown('<div class="glass tight" style="text-align:center;">👆 Unggah gambar terlebih dahulu '
+        st.markdown('<div class="glass tight" style="text-align:center;">👆 Masukkan foto terlebih dahulu '
                     'untuk mulai deteksi atau klasifikasi.</div>', unsafe_allow_html=True)
         return
 
@@ -571,7 +618,7 @@ def halaman_main():
 
 
 def halaman_feedback():
-    dots(3)
+    dots(4)
     left, right = st.columns([1, 1], gap="large")
     with left:
         st.markdown(
@@ -627,6 +674,8 @@ if st.session_state['page'] == 'home':
     halaman_awal()
 elif st.session_state['page'] == 'register':
     halaman_registrasi()
+elif st.session_state['page'] == 'input':
+    halaman_input()
 elif st.session_state['page'] == 'main':
     halaman_main()
 elif st.session_state['page'] == 'feedback':
