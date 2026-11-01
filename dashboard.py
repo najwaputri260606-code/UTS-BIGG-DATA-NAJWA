@@ -153,6 +153,19 @@ div[role="radiogroup"] label:has(input:checked) * { color:#fff !important; font-
 .chip { display:inline-block; margin: 4px 6px 4px 0; padding: 6px 14px; border-radius: 999px; font-weight: 600; font-size: 14px;
         background: #fff; color:#7b3fa8; border: 1.5px solid #f1b6e2; }
 
+/* ---------- KOTAK PENJELASAN HASIL ---------- */
+.interp { background: rgba(255,255,255,.78); border: 1.5px solid #f1b6e2; border-left: 7px solid #ff6fc8;
+          border-radius: 20px; padding: 16px 22px; margin: 14px 0; color:#4a2a6b; animation: rise .7s ease both; }
+.interp .ititle { font-family:'Fredoka',sans-serif; font-size: 20px; font-weight: 700; color:#7b3fa8; margin-bottom: 6px; }
+.interp ul { margin: 0; padding-left: 20px; }
+.interp li { margin: 6px 0; font-size: 15px; line-height: 1.5; }
+.interp b { color:#7b3fa8; }
+.lvl { display:inline-block; padding: 2px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; margin-left: 6px; }
+.lvl-1 { background:#d6f5e3; color:#17613f; }
+.lvl-2 { background:#e3dcff; color:#4b2d9a; }
+.lvl-3 { background:#fff0c7; color:#7a5200; }
+.lvl-4 { background:#ffdbe3; color:#9c1d3d; }
+
 /* ---------- TEKS BAWAAN STREAMLIT DI LATAR TERANG -> UNGU TUA ---------- */
 [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] *,
 [data-testid="stSpinner"], [data-testid="stSpinner"] *,
@@ -232,6 +245,94 @@ def go(page):
 
 def stat(label, value):
     return f'<div class="stat"><div class="l">{label}</div><div class="v">{value}</div></div>'
+
+
+def level_info(pct):
+    if pct >= 90:
+        return "Sangat yakin", "lvl-1"
+    if pct >= 70:
+        return "Cukup yakin", "lvl-2"
+    if pct >= 50:
+        return "Kurang yakin", "lvl-3"
+    return "Ragu-ragu", "lvl-4"
+
+
+def badge(pct):
+    label, cls = level_info(pct)
+    return f'<span class="lvl {cls}">{label}</span>'
+
+
+def interpret_classification(pred, conf, probs):
+    """Penjelasan hasil klasifikasi dengan bahasa sehari-hari. probs = [(nama, persen), ...] urut terbesar."""
+    emo = fruit_emoji.get(pred, "🍎")
+    _, cls = level_info(conf)
+    arti = {
+        "lvl-1": f"AI <b>sangat yakin</b>. Warna, bentuk, dan tekstur buah di foto sangat cocok dengan ciri {pred}.",
+        "lvl-2": "AI <b>cukup yakin</b>. Hasil ini kemungkinan besar benar.",
+        "lvl-3": "AI <b>kurang yakin</b>. Hasil ini bisa saja keliru, sebaiknya dicek lagi dengan foto lain.",
+        "lvl-4": "AI <b>ragu-ragu</b>. Jangan jadikan hasil ini patokan, coba unggah foto yang lebih jelas.",
+    }[cls]
+    second, second_pct = probs[1]
+    if second_pct >= 10:
+        mirip = (f"Perhatikan: AI juga melihat kemiripan dengan <b>{fruit_emoji.get(second, '🍎')} {second}</b> "
+                 f"({second_pct:.1f}%), jadi kedua buah ini tampak mirip di mata AI.")
+    else:
+        mirip = "Kemungkinan buah lain sangat kecil, jadi AI tidak terlalu bingung."
+    tips = ""
+    if conf < 70:
+        tips = ("<li>💡 <b>Tips:</b> coba foto dengan cahaya terang, latar polos, "
+                "satu jenis buah saja, dan ambil dari jarak dekat.</li>")
+    return ('<div class="interp"><div class="ititle">📖 Arti Hasil Klasifikasi</div><ul>'
+            f'<li>AI menebak buah di foto adalah <b>{emo} {pred}</b> dengan keyakinan <b>{conf:.1f}%</b>{badge(conf)}</li>'
+            f'<li>{arti}</li><li>{mirip}</li>{tips}'
+            '<li>ℹ️ Mode ini selalu memilih salah satu dari 9 buah yang dikenal AI, walaupun foto bukan buah. '
+            'Gunakan foto satu buah yang jelas.</li></ul></div>')
+
+
+def interpret_detection(labels, confs):
+    """Penjelasan hasil deteksi YOLO. confs dalam persen."""
+    grouped = {}
+    for l, c in zip(labels, confs):
+        grouped.setdefault(l, []).append(c)
+    rows = "".join(
+        f'<li>{fruit_emoji.get(l, "🍎")} <b>{l}</b>: {len(v)} buah, rata-rata keyakinan {np.mean(v):.1f}%{badge(float(np.mean(v)))}</li>'
+        for l, v in grouped.items())
+    low = sum(1 for c in confs if c < 50)
+    low_note = (f'<li>⚠️ Ada <b>{low} objek</b> dengan keyakinan di bawah 50%. Bisa jadi itu salah deteksi, '
+                'cek kotaknya pada gambar.</li>') if low else ""
+    return ('<div class="interp"><div class="ititle">📖 Arti Hasil Deteksi</div><ul>'
+            f'<li>AI menemukan <b>{len(labels)} objek</b> buah pada gambar:</li>'
+            f'<ul>{rows}</ul>{low_note}'
+            '<li>🟪 <b>Kotak berwarna</b> pada gambar menandai posisi tiap buah. Tulisan di atas kotak adalah jenis buah '
+            'dan angka keyakinannya (misal <b>0.87</b> berarti 87%).</li>'
+            '<li>📋 Pada tabel: <b>Jenis Buah</b> = nama buah yang dikenali, <b>Tingkat Keyakinan</b> = seberapa yakin AI, '
+            'sedangkan <b>Kiri, Atas, Kanan, Bawah</b> = posisi kotak pada gambar (dalam piksel, bagian ini boleh diabaikan).</li>'
+            '<li>ℹ️ AI hanya mengenali 9 buah: Apel, Cherry, Grapes, Jeruk, Kiwi, Mangga, Pisang, Sawo, dan Strawberry.</li>'
+            '</ul></div>')
+
+
+def no_detection_note():
+    return ('<div class="interp"><div class="ititle">📖 Kenapa tidak ada yang terdeteksi?</div><ul>'
+            '<li>Buah di foto mungkin bukan salah satu dari 9 buah yang dikenal AI.</li>'
+            '<li>Foto terlalu gelap, buram, atau buahnya terlalu kecil.</li>'
+            '<li>💡 Coba foto dengan cahaya terang dan buah terlihat jelas.</li></ul></div>')
+
+
+def donut_note():
+    return ('<div class="interp"><div class="ititle">📖 Cara Membaca Donut Chart</div><ul>'
+            '<li>Bagian <b>ungu</b> menunjukkan seberapa yakin AI pada hasil ini, bagian <b>pink</b> adalah sisa keraguannya.</li>'
+            '<li>⚠️ Ini <b>bukan</b> nilai akurasi final model dan bukan jaminan hasil pasti benar. '
+            'Angka ini hanya tingkat keyakinan AI untuk gambar yang baru kamu unggah.</li></ul></div>')
+
+
+def glossary():
+    return ('<div class="interp"><div class="ititle">🍓 Kamus Istilah Singkat</div><ul>'
+            '<li><b>Deteksi (YOLO)</b>: AI mencari dan menandai <i>di mana</i> buah berada, bisa lebih dari satu buah.</li>'
+            '<li><b>Klasifikasi (CNN)</b>: AI menebak <i>jenis</i> buah dari satu foto.</li>'
+            '<li><b>Confidence / Keyakinan</b>: seberapa yakin AI pada tebakannya. '
+            'Makin tinggi makin meyakinkan, tapi tetap bisa keliru.</li>'
+            '<li><b>Level keyakinan</b>: 90% ke atas = sangat yakin, 70–89% = cukup yakin, '
+            '50–69% = kurang yakin, di bawah 50% = ragu-ragu.</li></ul></div>')
 
 
 # ==========================
@@ -354,9 +455,9 @@ def halaman_main():
                         label = results[0].names[cls]
                         labels.append(label)
                         data.append({
-                            "Label": label, "Confidence": f"{conf*100:.2f}%",
-                            "x1": int(xyxy[0]), "y1": int(xyxy[1]),
-                            "x2": int(xyxy[2]), "y2": int(xyxy[3])
+                            "Jenis Buah": label, "Tingkat Keyakinan": f"{conf*100:.2f}%",
+                            "Kiri (x1)": int(xyxy[0]), "Atas (y1)": int(xyxy[1]),
+                            "Kanan (x2)": int(xyxy[2]), "Bawah (y2)": int(xyxy[3])
                         })
                         confidences.append(conf * 100)
 
@@ -370,12 +471,13 @@ def halaman_main():
                     st.markdown(chips, unsafe_allow_html=True)
                 else:
                     st.warning("⚠️ Tidak ada objek yang terdeteksi dalam gambar ini.")
+                    st.markdown(no_detection_note(), unsafe_allow_html=True)
                     data = []
 
             if data:
                 st.markdown('<div class="h2">🍌 Rincian Hasil Deteksi</div>', unsafe_allow_html=True)
                 st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
-                st.caption("💡 Semakin tinggi nilai confidence, semakin yakin model terhadap deteksi tersebut.")
+                st.markdown(interpret_detection(labels, confidences), unsafe_allow_html=True)
 
     # ---------- KLASIFIKASI ----------
     else:
@@ -402,6 +504,9 @@ def halaman_main():
                     f'<div class="muted">Keyakinan model: <b>{confidence:.2f}%</b></div></div>',
                     unsafe_allow_html=True)
                 st.progress(min(max(confidence / 100.0, 0.0), 1.0))
+                probs_sorted = sorted(((class_names[i], float(prediction[0][i]) * 100) for i in range(len(class_names))),
+                                      key=lambda x: -x[1])
+                st.markdown(interpret_classification(pred_name, confidence, probs_sorted), unsafe_allow_html=True)
 
             prob_df = pd.DataFrame({
                 "Kelas": class_names,
@@ -421,6 +526,10 @@ def halaman_main():
                                  tickfont=dict(color='#4a2a6b', size=15), automargin=True)
             st.markdown('<div class="h2">🥝 Probabilitas per Kelas</div>', unsafe_allow_html=True)
             st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False}, theme=None)
+            st.markdown('<div class="interp"><div class="ititle">📖 Cara Membaca Grafik</div><ul>'
+                        '<li>Batang <b>pink</b> adalah tebakan utama AI, batang <b>ungu muda</b> adalah kemungkinan buah lain.</li>'
+                        '<li>Makin panjang batangnya, makin besar kemungkinan buah itu menurut AI.</li></ul></div>',
+                        unsafe_allow_html=True)
 
             st.session_state.update(last_mode='classification', last_pred=pred_name,
                                     last_conf=confidence, used_feature=True)
@@ -452,6 +561,9 @@ def halaman_main():
             _, d2, _ = st.columns([1, 2, 1])
             with d2:
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, theme=None)
+            st.markdown(donut_note(), unsafe_allow_html=True)
+
+        st.markdown(glossary(), unsafe_allow_html=True)
 
         _, b, _ = st.columns([2, 2, 2])
         with b:
