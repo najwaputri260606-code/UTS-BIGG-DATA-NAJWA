@@ -7,7 +7,6 @@ from PIL import Image
 import pandas as pd
 import datetime
 import os
-import re
 from collections import Counter
 from plotly import express as px
 
@@ -398,9 +397,8 @@ def halaman_input():
     opsi = [
         ("upload", "📂", "Unggah Foto", "Pilih foto buah dari galeri atau penyimpanan perangkatmu."),
         ("camera", "📸", "Ambil Foto", "Foto buah langsung memakai kamera HP atau laptop."),
-        ("sample", "🖼️", "Foto Contoh", "Coba cepat dengan foto contoh yang sudah disiapkan."),
     ]
-    cols = st.columns(3, gap="medium")
+    cols = st.columns(2, gap="large")
     for col, (kode, emo, judul, desc) in zip(cols, opsi):
         with col:
             st.markdown(
@@ -440,7 +438,7 @@ def halaman_main():
 
     st.write("")
     st.markdown('<div class="muted" style="margin-bottom:6px;">Sumber foto</div>', unsafe_allow_html=True)
-    sumber_label = {"upload": "📂 Unggah Foto", "camera": "📸 Ambil Foto", "sample": "🖼️ Foto Contoh"}
+    sumber_label = {"upload": "📂 Unggah Foto", "camera": "📸 Ambil Foto"}
     kode_list = list(sumber_label.keys())
     pilih = st.radio("Sumber foto", list(sumber_label.values()),
                      index=kode_list.index(st.session_state.get('photo_source', 'upload')),
@@ -452,19 +450,8 @@ def halaman_main():
     uploaded_file = None
     if sumber == "upload":
         uploaded_file = st.file_uploader("📂 Unggah gambar buah (JPG / PNG)", type=["jpg", "jpeg", "png"])
-    elif sumber == "camera":
-        uploaded_file = st.camera_input("📸 Arahkan kamera ke buah, lalu ambil foto")
     else:
-        sample_dir = "sample_images"
-        files = []
-        if os.path.isdir(sample_dir):
-            files = sorted((f for f in os.listdir(sample_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))),
-                           key=lambda n: [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", n)])
-        if files:
-            nama = st.selectbox("🖼️ Pilih foto contoh", files)
-            uploaded_file = os.path.join(sample_dir, nama)
-        else:
-            st.warning("Folder foto contoh (sample_images) tidak ditemukan atau kosong.")
+        uploaded_file = st.camera_input("📸 Arahkan kamera ke buah, lalu ambil foto")
 
     if uploaded_file is None:
         st.markdown('<div class="glass tight" style="text-align:center;">👆 Masukkan foto terlebih dahulu '
